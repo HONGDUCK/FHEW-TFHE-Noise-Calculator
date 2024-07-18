@@ -14,7 +14,6 @@ def calculate_sigma_acc_ap(n, q, N, sigma, d_r, d_g, B_g, t, delta, Xs='ternary'
         print("hello")
         #sqrt(n(N)*sigma^2)
 
-
     cutoff_br_term = 1
     approx_gadget_decomp_term = 0
 
@@ -94,12 +93,12 @@ def calculate_total_stddev(parameters, Xs, method = 'AP'):
     threshold_error = 0
     if(t != 0): # Using cutoff blindrotation
         threshold_error = 2 * n * mp.power(t, 3) / (3 * q)
-    
+
     sigma_ms1, sigma_ms2, sigma_ks = calculate_sigma_else(n, N, sigma, d_ks, Xs)
-    sigma_total = mp.power(q, 2) / mp.power(Q_ks, 2) * ((mp.power(Q_ks, 2) / mp.power(Q, 2)) * sigma_acc + sigma_ms1 + sigma_ks) + sigma_ms2
+    sigma_total = mp.power(q, 2) / mp.power(Q_ks, 2) * ((mp.power(Q_ks, 2) / mp.power(Q, 2)) * 2 * sigma_acc + sigma_ms1 + sigma_ks) + sigma_ms2
     stddev_total = mp.sqrt(sigma_total + threshold_error)
 
-    return stddev_total
+    return stddev_total 
 
 def calculate_failure_porb(parameters, Xs, method = 'AP'):
     sigma = parameters['sigma']
@@ -117,9 +116,6 @@ def calculate_failure_porb(parameters, Xs, method = 'AP'):
     
     stddev_total = calculate_total_stddev(parameters, Xs, method)
     result = mp.log(1 - mp.erf((q/8) / (mp.sqrt(2)*stddev_total)), 2)
-
-    # stddev_total = mp.sqrt(calculate_sigma_acc_ap(n, q, N, sigma, d_r, d_g, B_g, t, delta, Xs))  # for Overlapping Bootstrapping
-    # result = mp.log(1 - mp.erf((Q/4) / (mp.sqrt(2 * 11)*stddev_total)), 2)       # for Overlapping Bootstrapping
 
     return round(result, 10)
 
@@ -255,7 +251,7 @@ def parse_data(data):
             'logQ':    int(params[0]),
             'logQ_ks': mp.log(int(params[4]),2),
             'Q': mp.power(2, int(params[0])),
-            'Q_ks': mp.power(2, int(params[4])),
+            'Q_ks': int(params[4]),
             'B_ks': int(params[6]),
             'B_g':  int(params[7]),
             'B_r':  int(params[8]),
