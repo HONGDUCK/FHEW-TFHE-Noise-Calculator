@@ -3,6 +3,35 @@ import pandas as pd
 import copy
 mp.mp.dps = 500;
 
+def calculate_sigma_acc_lmkcdey(n, q, N, sigma, d_g, B_g, t, delta, w, Xs='ternary'):
+    norm_s_N_square = 0
+    
+    if(Xs == "ternary"):
+        norm_s_N_square = N/2
+    elif(Xs == "binary"):
+        norm_s_N_square = N/2
+    else:
+        print("hello")
+        #sqrt(n(N)*sigma^2)
+
+    # worst-case
+    # k = n
+
+    # average-case
+    k = N * (1 - mp.exp(-1 * n / N ))
+
+    cutoff_br_term = 1
+    approx_gadget_decomp_term = 0
+
+    if(t != 0):     # Using cutoff blind rotation
+        cutoff_br_term = (1 - (2*t+1)/q)
+
+    if(delta != 1):
+        approx_gadget_decomp_term = n * mp.power(delta, 2) / 6 *(norm_s_N_square + 1)
+
+    sigma_acc_lmkcdey = (d_g * N * mp.power(B_g, 2) / 12) * ( 2 * n * mp.power(sigma, 2) * cutoff_br_term + (k + (N - k) / w ) * mp.power(sigma, 2)) + approx_gadget_decomp_term
+    return sigma_acc_lmkcdey
+
 def calculate_sigma_acc_ap(n, q, N, sigma, d_r, d_g, B_g, t, delta, Xs='ternary'):
     norm_s_N_square = 0
     
@@ -83,12 +112,15 @@ def calculate_total_stddev(parameters, Xs, method = 'AP'):
     Q_ks = parameters['Q_ks']
     Q = parameters['Q']
     delta = parameters['delta']
+    w = parameters['w']
     
     sigma_acc = 0
     if(method == 'AP'):
         sigma_acc = calculate_sigma_acc_ap(n, q, N, sigma, d_r, d_g, B_g, t, delta, Xs)
     elif(method == 'GINX'):
         sigma_acc = calculate_sigma_acc_ginx(n, q, N, sigma, d_g, B_g, t, delta, Xs)
+    elif(method == 'LMKCDEY'):
+        sigma_acc = calculate_sigma_acc_lmkcdey(n, q, N, sigma, d_g, B_g, t, delta, w, Xs)
 
     threshold_error = 0
     if(t != 0): # Using cutoff blindrotation
@@ -152,6 +184,22 @@ def number_of_mult_ginx(parameters, Xs='ternary'):
     proposed_complexity = 2 * U * n * (1 - (2 * t + 1) / q)
     return round(proposed_complexity, 10)
 
+def number_of_mult_lmkcdey(parameters, Xs='ternary'):
+    # if threshold is 0, it will be original complexity
+    n = parameters['n']
+    N = parameters['N']
+    q = parameters['q']
+    t = parameters['t']
+    w = parameters['w']
+
+    # worst-case
+    # k = n
+    # average-case
+    k = N * (1 - mp.exp(-1 * n / N ))
+
+    proposed_complexity = 2 * n * (1 - (2 * t + 1) / q) + (w-1) / w * k + N / w + 2
+    return round(proposed_complexity, 10)
+
 def btkSize(parameters):
     n = parameters['n']
     N = parameters['N']
@@ -201,10 +249,12 @@ def display_parameters_vector(*parameters_vec, Xs = 'ternary'):
         dummyParam['index'] = index
         dummyParam['FP_AP']   = calculate_failure_porb(dummyParam, Xs)
         dummyParam['FP_GINX'] = calculate_failure_porb(dummyParam, Xs = Xs, method = 'GINX')
-        dummyParam['MEM'] = btkSize(dummyParam)
-        dummyParam['CC'] = computation_complex(dummyParam)
+        dummyParam['FP_LMKCDEY'] = calculate_failure_porb(dummyParam, Xs = Xs, method = 'LMKCDEY')
+        # dummyParam['MEM'] = btkSize(dummyParam)
+        # dummyParam['CC'] = computation_complex(dummyParam)
         dummyParam['# of RLWE\' AP'] = number_of_mult_ap(dummyParam)
         dummyParam['# of RLWE\' GINX'] = number_of_mult_ginx(dummyParam)
+        dummyParam['# of RLWE\' LMKCDEY'] = number_of_mult_lmkcdey(dummyParam)
         
         # Q 제거
         if 'Q' in dummyParam:
@@ -218,6 +268,7 @@ def display_parameters_vector(*parameters_vec, Xs = 'ternary'):
         dummyParam['B_g'] = mp.ceil(mp.log(dummyParam['B_g'], 2))
         dummyParam['B_ks'] = mp.ceil(mp.log(dummyParam['B_ks'], 2))
         dummyParam['B_r'] = mp.ceil(mp.log(dummyParam['B_r'], 2))
+        dummyParam['w'] = dummyParam['w']
 
         
         df = pd.DataFrame.from_dict(dummyParam, orient='index', columns=[dummyParam['name']])
@@ -255,6 +306,7 @@ def parse_data(data):
             'B_ks': int(params[6]),
             'B_g':  int(params[7]),
             'B_r':  int(params[8]),
+            'w': int(params[9]),
             't': 0,
             'delta': 1,
             'sigma': mp.mpf('3.2'),  # Assuming a standard deviation
@@ -266,5 +318,46 @@ def parse_data(data):
         result.append(param_dict)
 
     return result
+
+def setDelta(data, Delta):
+    data['delta'] = mp.power(2, Delta)
+    logQ = data['logQ']
+    log_Bg = mp.log(data['B_g'], 2)
+    data['d_g']    = mp.ceil((logQ - Delta)/log_Bg)
+
+def setCutoff(data, t):
+    data['t'] = t
+
+def setBaseG(data, BaseG):
+    data['B_g'] = mp.power(2, BaseG)
+    logQ = data['logQ']
+    Delta = mp.log(data['delta'], 2)
+    data['d_g']    = mp.ceil((logQ - Delta)/BaseG)
+
+
+# Caution.
+# It changes 3 variables : DigitsG, BaseG, Delta
+# It will be find optimum BaseG and Delta that makes minimum failure probability
+def setDigitsG(data, DigitsG, method = 'AP'):
+    MinFP = 1
+    data['d_g'] = DigitsG
+    logQ = data['logQ']
+    maxBg = int(mp.ceil(logQ/DigitsG))
+
+    # Bg in [ 2^0, ceil(logQ/d_g)]
+    for Bg in range(1, maxBg + 1):
+        tmp = copy.deepcopy(data)
+        # Delta = logQ - DigitsG * BaseG
+        Delta = mp.power(2, logQ - DigitsG * Bg)
+        tmp['delta'] = Delta
+        tmp['B_g'] = mp.power(2, Bg)
+        FP = calculate_failure_porb(tmp, 'ternary', method)
+        if(MinFP > FP):
+            MinFP = FP
+            data['delta'] = Delta
+            data['B_g']   = mp.power(2, Bg)
+    
+            
+
 
 ## Data 입력 함수도 만들어두기.
