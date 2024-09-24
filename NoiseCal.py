@@ -27,9 +27,12 @@ def calculate_sigma_acc_lmkcdey(n, q, N, sigma, d_g, B_g, t, delta, w, Xs='terna
         cutoff_br_term = (1 - (2*t+1)/q)
 
     if(delta != 1):
-        approx_gadget_decomp_term = n * mp.power(delta, 2) / 6 *(norm_s_N_square + 1)
+        approx_gadget_decomp_term = mp.power(delta, 2) / 12 * (norm_s_N_square + 1)
 
-    sigma_acc_lmkcdey = (d_g * N * mp.power(B_g, 2) / 12) * ( 2 * n * mp.power(sigma, 2) * cutoff_br_term + (k + (N - k) / w ) * mp.power(sigma, 2)) + approx_gadget_decomp_term
+    rlwep_term = (d_g * N * mp.power(B_g, 2) / 12)
+    lmk_term = (k + (N - k) / w)
+
+    sigma_acc_lmkcdey = (rlwep_term + approx_gadget_decomp_term) * ( 2 * n * mp.power(sigma, 2) * cutoff_br_term + lmk_term * mp.power(sigma, 2)) 
     return sigma_acc_lmkcdey
 
 def calculate_sigma_acc_ap(n, q, N, sigma, d_r, d_g, B_g, t, delta, Xs='ternary'):
