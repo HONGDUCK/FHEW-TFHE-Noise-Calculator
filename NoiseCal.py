@@ -3,106 +3,70 @@ import pandas as pd
 import copy
 mp.mp.dps = 500;
 
-def calculate_sigma_acc_lmkcdey(n, q, N, sigma, d_g, B_g, t, delta, w, Xs='ternary'):
+def norm_secret(N, sigma = 3.2, Xs='ternary'):
     norm_s_N_square = 0
-    
+
     if(Xs == "ternary"):
         norm_s_N_square = N/2
     elif(Xs == "binary"):
         norm_s_N_square = N/2
     else:
-        print("hello")
-        #sqrt(n(N)*sigma^2)
+        norm_s_N_square = N * (sigma ** 2)
 
-    # worst-case
-    # k = n
+    return norm_s_N_square
 
-    # average-case
-    k = N * (1 - mp.exp(-1 * n / N ))
+def cardinality_U(Xs = 'ternary'):
+    if(Xs == "ternary"):
+        u = 2
+    elif(Xs == "binary"):
+        u = 1
+    return u
 
-    cutoff_br_term = 1
-    approx_gadget_decomp_term = 0
-
-    if(t != 0):     # Using cutoff blind rotation
-        cutoff_br_term = (1 - (2*t+1)/q)
-
-    if(delta != 1):
-        approx_gadget_decomp_term = mp.power(delta, 2) / 12 * (norm_s_N_square + 1)
-
+def calculate_sigma_acc_lmkcdey(n, q, N, sigma, d_g, B_g, t, delta, w, Xs='ternary'):
+    norm_s_N_square = norm_secret(N, Xs=Xs)
+    k = N * (1 - mp.exp(-1 * n / N )) # average-case || # worst-case : k = n
+    cutoff_br_term = (1 - (2*t+1)/q)
+    approx_gadget_decomp_term = mp.power(delta, 2) / 12 * (norm_s_N_square + 1)
     rlwep_term = (d_g * N * mp.power(B_g, 2) / 12)
     lmk_term = (k + (N - k) / w)
 
     sigma_acc_lmkcdey = (rlwep_term + approx_gadget_decomp_term) * ( 2 * n * mp.power(sigma, 2) * cutoff_br_term + lmk_term * mp.power(sigma, 2)) 
+
     return sigma_acc_lmkcdey
 
 def calculate_sigma_acc_ap(n, q, N, sigma, d_r, d_g, B_g, t, delta, Xs='ternary'):
-    norm_s_N_square = 0
-    
-    if(Xs == "ternary"):
-        norm_s_N_square = N/2
-    elif(Xs == "binary"):
-        norm_s_N_square = N/2
-    else:
-        print("hello")
-        #sqrt(n(N)*sigma^2)
+    norm_s_N_square = norm_secret(N, Xs=Xs)
+    cutoff_br_term = (1 - (2*t+1)/q)
+    approx_gadget_decomp_term = mp.power(delta, 2) / 12 * (norm_s_N_square + 1)
+    rlwep_term = (d_g * N * mp.power(B_g, 2) / 12)
 
-    cutoff_br_term = 1
-    approx_gadget_decomp_term = 0
-
-    if(t != 0):     # Using cutoff blind rotation
-        cutoff_br_term = (1 - (2*t+1)/q)
-    if(delta != 1): # Using approximated gadget decomposition
-        approx_gadget_decomp_term = mp.power(delta, 2) / 12 * (norm_s_N_square + 1)
-
-    sigma_acc_ap = n * d_r * 2 * ( d_g * N * mp.power(B_g, 2) / 12 * mp.power(sigma, 2) + approx_gadget_decomp_term) * cutoff_br_term
+    sigma_acc_ap = 2 * n * d_r * (rlwep_term * mp.power(sigma, 2) + approx_gadget_decomp_term) * cutoff_br_term
 
     return sigma_acc_ap
 
 def calculate_sigma_acc_ginx(n, q, N, sigma, d_g, B_g, t, delta, Xs='ternary'):
-    u = 0
-    if(Xs == "ternary"):
-        u = 2
-        norm_s_N_square = N/2
-    elif(Xs == "binary"):
-        u = 1
-        norm_s_N_square = N/2
-    else: # Gaussian
-        print('hello')
-        #sqrt(n(N)*sigma^2) 
+    u = cardinality_U(Xs)
+    norm_s_N_square = norm_secret(N, Xs=Xs)
+    cutoff_br_term = (1 - (2*t+1)/q)
+    approx_gadget_decomp_term = mp.power(delta, 2) / 12 * (norm_s_N_square + 1)
+    rlwep_term = (d_g * N * mp.power(B_g, 2) / 12)
 
-    cutoff_br_term = 1
-    approx_gadget_decomp_term = 0
+    sigma_acc_ginx = 2 * u * 2 * n * ( rlwep_term * mp.power(sigma, 2) + approx_gadget_decomp_term) * cutoff_br_term
 
-    if(t != 0):     # Using cutoff blind rotation
-        cutoff_br_term = (1 - (2*t+1)/q)
-    if(delta != 1): # Using approximated gadget decomposition
-        approx_gadget_decomp_term = mp.power(delta, 2) / 12 * (norm_s_N_square + 1)
-    
-        
-    sigma_acc_ginx = 2 * u * 2 * n * ( d_g * N * mp.power(B_g, 2) / 12 * mp.power(sigma, 2) + approx_gadget_decomp_term) * cutoff_br_term
     return sigma_acc_ginx
 
 def calculate_sigma_else(n, N, sigma, d_ks, Xs='ternary'):
-    norm_s_N_square = 0
-    norm_s_n_square = 0
+    norm_s_N_square = norm_secret(N, Xs = Xs)
+    norm_s_n_square = norm_secret(n, Xs = Xs)
     
-    if(Xs == "ternary"):
-        norm_s_N_square = N/2
-        norm_s_n_square = n/2
-    elif(Xs == "binary"):
-        norm_s_N_square = N/2
-        norm_s_n_square = n/2
-    else:
-        print("hello")
-        #sqrt(n(N)*sigma^2)
-        
     sigma_ms1 = (norm_s_N_square + 1) / 3
     sigma_ms2 = (norm_s_n_square + 1) / 3    
+
     sigma_ks = mp.power(sigma, 2) * N * d_ks
     
     return sigma_ms1, sigma_ms2, sigma_ks
 
-def calculate_total_stddev(parameters, Xs, method = 'AP'):
+def calculate_total_stddev(parameters, Xs, method = 'AP', impl = 'theorical'):
     sigma = parameters['sigma']
     n = parameters['n']
     q = parameters['q']
@@ -125,31 +89,22 @@ def calculate_total_stddev(parameters, Xs, method = 'AP'):
     elif(method == 'LMKCDEY'):
         sigma_acc = calculate_sigma_acc_lmkcdey(n, q, N, sigma, d_g, B_g, t, delta, w, Xs)
 
-    threshold_error = 0
-    if(t != 0): # Using cutoff blindrotation
-        threshold_error = 2 * n * mp.power(t, 3) / (3 * q)
-
+    # threshold_error = 2 * n * mp.power(t, 3) / (3 * q)
+    threshold_error = 2 * n * mp.power(t, 3) / (6 * q)
     sigma_ms1, sigma_ms2, sigma_ks = calculate_sigma_else(n, N, sigma, d_ks, Xs)
-    sigma_total = mp.power(q, 2) / mp.power(Q_ks, 2) * ((mp.power(Q_ks, 2) / mp.power(Q, 2)) * 2 * sigma_acc + sigma_ms1 + sigma_ks) + sigma_ms2
-    stddev_total = mp.sqrt(sigma_total + threshold_error)
+
+    if(impl == 'theorical'):
+        sigma_total = mp.power(q, 2) / mp.power(Q_ks, 2) * ((mp.power(Q_ks, 2) / mp.power(Q, 2)) * 2 * sigma_acc + sigma_ms1 + sigma_ks) + sigma_ms2 + threshold_error   # Theorical
+    elif(impl == 'practical'):
+        sigma_total = 2 * ( mp.power(q, 2) / mp.power(Q_ks, 2) * ((mp.power(Q_ks, 2) / mp.power(Q, 2)) * sigma_acc + sigma_ms1 + sigma_ks) + sigma_ms2 + threshold_error ) # Practical
+
+    stddev_total = mp.sqrt(sigma_total)
 
     return stddev_total 
 
-def calculate_failure_porb(parameters, Xs, method = 'AP'):
-    sigma = parameters['sigma']
-    n = parameters['n']
+def calculate_failure_porb(parameters, Xs, method = 'AP', impl = 'theorical'):
     q = parameters['q']
-    N = parameters['N']
-    d_r = parameters['d_r']
-    d_g = parameters['d_g']
-    d_ks = parameters['d_ks']
-    B_g = parameters['B_g']
-    t = parameters['t']
-    Q_ks = parameters['Q_ks']
-    Q = parameters['Q']
-    delta = parameters['delta']
-    
-    stddev_total = calculate_total_stddev(parameters, Xs, method)
+    stddev_total = calculate_total_stddev(parameters, Xs, method, impl)
     result = mp.log(1 - mp.erf((q/8) / (mp.sqrt(2)*stddev_total)), 2)
 
     return round(result, 10)
@@ -238,7 +193,7 @@ def display_parameters(parameters):
     df.columns.name = ''
     return df.transpose()
 
-def display_parameters_vector(*parameters_vec, Xs = 'ternary'):
+def display_parameters_vector(*parameters_vec, Xs = 'ternary', impl = 'theorical'):
     
     pd.set_option('display.max_rows', None)
     pd.set_option('display.max_columns', None)
@@ -250,13 +205,13 @@ def display_parameters_vector(*parameters_vec, Xs = 'ternary'):
     for param in parameters_vec:
         dummyParam = copy.deepcopy(param)
         dummyParam['index'] = index
-        dummyParam['FP_AP']   = calculate_failure_porb(dummyParam, Xs)
-        dummyParam['FP_GINX'] = calculate_failure_porb(dummyParam, Xs = Xs, method = 'GINX')
-        dummyParam['FP_LMKCDEY'] = calculate_failure_porb(dummyParam, Xs = Xs, method = 'LMKCDEY')
+        dummyParam['FP_AP']      = calculate_failure_porb(dummyParam, Xs = Xs, method = 'AP',      impl = impl)
+        dummyParam['FP_GINX']    = calculate_failure_porb(dummyParam, Xs = Xs, method = 'GINX',    impl = impl)
+        dummyParam['FP_LMKCDEY'] = calculate_failure_porb(dummyParam, Xs = Xs, method = 'LMKCDEY', impl = impl)
         # dummyParam['MEM'] = btkSize(dummyParam)
         # dummyParam['CC'] = computation_complex(dummyParam)
-        dummyParam['# of RLWE\' AP'] = number_of_mult_ap(dummyParam)
-        dummyParam['# of RLWE\' GINX'] = number_of_mult_ginx(dummyParam)
+        dummyParam['# of RLWE\' AP']      = number_of_mult_ap(dummyParam)
+        dummyParam['# of RLWE\' GINX']    = number_of_mult_ginx(dummyParam)
         dummyParam['# of RLWE\' LMKCDEY'] = number_of_mult_lmkcdey(dummyParam)
         
         # Q 제거
