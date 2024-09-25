@@ -24,11 +24,12 @@ def cardinality_U(Xs = 'ternary'):
 
 def calculate_sigma_acc_lmkcdey(n, q, N, sigma, d_g, B_g, t, delta, w, Xs='ternary'):
     norm_s_N_square = norm_secret(N, Xs=Xs)
-    k = N * (1 - mp.exp(-1 * n / N )) # average-case || # worst-case : k = n
     cutoff_br_term = (1 - (2*t+1)/q)
     approx_gadget_decomp_term = mp.power(delta, 2) / 12 * (norm_s_N_square + 1)
+    Np = N - t # for LMK with cutoff
+    kp = Np * (1 - mp.exp(-1 * n * cutoff_br_term / Np )) # for LMK with cutoff
     rlwep_term = (d_g * N * mp.power(B_g, 2) / 12)
-    lmk_term = (k + (N - k) / w)
+    lmk_term = (kp + (N - kp) / w)
 
     sigma_acc_lmkcdey = (rlwep_term + approx_gadget_decomp_term) * ( 2 * n * mp.power(sigma, 2) * cutoff_br_term + lmk_term * mp.power(sigma, 2)) 
 
@@ -89,8 +90,10 @@ def calculate_total_stddev(parameters, Xs, method = 'AP', impl = 'theorical'):
     elif(method == 'LMKCDEY'):
         sigma_acc = calculate_sigma_acc_lmkcdey(n, q, N, sigma, d_g, B_g, t, delta, w, Xs)
 
-    # threshold_error = 2 * n * mp.power(t, 3) / (3 * q)
-    threshold_error = 2 * n * mp.power(t, 3) / (6 * q)
+    # threshold_error = ( 2 * n * mp.power(t, 3) + n * mp.power(t, 2) ) / (3 * q)
+    norm_s_n_square = norm_secret(n, Xs = Xs)
+    NN = ( (2 * t + 1) / q )
+    threshold_error = mp.power(t, 2) / 3 * ( n * NN / 2 + 1)
     sigma_ms1, sigma_ms2, sigma_ks = calculate_sigma_else(n, N, sigma, d_ks, Xs)
 
     if(impl == 'theorical'):
