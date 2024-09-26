@@ -318,7 +318,31 @@ def setDigitsG(data, DigitsG, method = 'AP'):
             data['delta'] = Delta
             data['B_g']   = mp.power(2, Bg)
     
-            
+
+
+# find smallest d_g satisfying FP
+# find delta that makes delta and baseG that makse smallest failure probability
+# find cutoff make parameter satisfying FP             
+def findParam(param, Xs='ternary', impl='theorical', method='AP', FP=-128):
+    result_param = copy.deepcopy(param)
+    for dg in range(5, 0, -1):
+        temp_param = copy.deepcopy(result_param)
+        setDigitsG(temp_param, dg, method)
+        current_fp = calculate_failure_porb(temp_param, Xs, method, impl)
+        if current_fp > FP:
+            setDigitsG(result_param, dg + 1, method)
+            break
+
+    for t in range(1, 20):
+        result_param['t'] = t
+        current_fp = calculate_failure_porb(result_param, Xs, method, impl)
+        if current_fp > FP:
+            result_param['t'] = t - 1
+            break
+
+    return result_param
+
+
 
 
 ## Data 입력 함수도 만들어두기.
