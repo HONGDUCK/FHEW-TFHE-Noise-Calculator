@@ -60,8 +60,8 @@ def calculate_sigma_else(n, N, sigma, d_ks, Xs='ternary'):
     norm_s_N_square = norm_secret(N, Xs = Xs)
     norm_s_n_square = norm_secret(n, Xs = Xs)
     
-    sigma_ms1 = (norm_s_N_square + 1) / 3
-    sigma_ms2 = (norm_s_n_square + 1) / 3    
+    sigma_ms1 = (norm_s_N_square + 1) / 12
+    sigma_ms2 = (norm_s_n_square + 1) / 12   
 
     sigma_ks = mp.power(sigma, 2) * N * d_ks
     
